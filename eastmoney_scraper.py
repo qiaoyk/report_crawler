@@ -6,6 +6,7 @@ import os
 import time
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
+import argparse
 
 class EastmoneyReportScraper:
     """
@@ -158,24 +159,34 @@ def main():
     """
     Main execution function.
     """
+    parser = argparse.ArgumentParser(description="Scrape research reports from Eastmoney for a given industry.")
+    parser.add_argument("--industry-id", default='738', help="The industry ID to scrape reports for (default: '738').")
+    args = parser.parse_args()
+
     print("Starting the report scraping process...")
-    
-    # Industry ID from the provided URL: https://data.eastmoney.com/report/industry.jshtml?hyid=738
-    industry_id = "738"
-    scraper = EastmoneyReportScraper(industry_code=industry_id)
-    
-    # Fetch the first page of reports
-    reports_data = scraper.get_reports(page_num=1)
 
-    if reports_data and isinstance(reports_data, list):
-        print(f"Found {len(reports_data)} reports on the current page.")
-        print("Downloading the first 3 reports as a demonstration...\n")
+    # Industry ID is now passed via command-line argument
+    scraper = EastmoneyReportScraper(industry_code=args.industry_id)
 
-        for report in reports_data[:3]: # Download first 3 for demonstration
+    page_num = 1
+    total_downloaded = 0
+    while True:
+        print(f"\n--- Processing Page {page_num} ---")
+        reports_data = scraper.get_reports(page_num=page_num)
+
+        if not reports_data or not isinstance(reports_data, list):
+            print("No more reports found, or an error occurred. Stopping the process.")
+            break
+
+        print(f"Found {len(reports_data)} reports on this page.")
+        for report in reports_data:
             scraper.download_report_pdf(report)
+            total_downloaded += 1
             print("--------------------")
-    else:
-        print("No reports were found. Please check the configuration or website availability.")
+        
+        page_num += 1
+
+    print(f"\nScraping process finished. Total reports downloaded: {total_downloaded}.")
 
 
 if __name__ == "__main__":
